@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"name": "OTA test",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.h": "cpp",
+			"*.tpp": "cpp",
+			"functional": "cpp",
+			"cmath": "cpp"
+		}
+	}
+}
