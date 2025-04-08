@@ -1,199 +1,38 @@
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <ArduinoJson.h>
+#include <Arduino.h>
+#include <esp_system.h>
 
-#define WELL_CODE "WELL_NALAIKH_4"
-#define API_SERVER "https://api.aquametrix.mn/api/device"
 
-// WiFi тохиргоо
-const char* ssid = "SEM-HW";
-const char* password = "janjinshugam123";
+// int get_card(){
+//   StaticJsonDocument<400> doc;
+//   // json avah
+//   json = request('api_server');
+//   deserializeJson(doc, json);
 
-// sensor data илгээх функц
-void apiSendSensorData() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin((String)API_SERVER + "/wells/sensor-data");  // POST хаягийг тохируулах
-    http.addHeader("Content-Type", "application/json");  // JSON формат ашиглах
-
-    // JSON объектоо боловсруулахын тулд буфер үүсгэнэ
-    StaticJsonDocument<1024> sensorData;
-    sensorData["ambientTemperature1"] = 0;
-    sensorData["ambientTemperature2"] = 0;
-    sensorData["boilerTemperature"] = 0;
-    sensorData["nozzleTemperature"] = 0;
-    sensorData["kioskTemperature"] = 0;
-    sensorData["smoke"] = 0;
-    sensorData["humidity"] = 0;
-    sensorData["tankLevel"] = 0;
-    sensorData["wellCode"] = WELL_CODE;
-
-    // JSON-г string болгон хувиргах
-    String requestBody;
-    serializeJson(sensorData, requestBody);
-
-    // POST хүсэлт илгээх
-    int httpResponseCode = http.POST(requestBody);
-
-    if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.println("Response Code: " + String(httpResponseCode));
-      Serial.println("Response: " + response);
-    } else {
-      Serial.println("HTTP request failed. Code: " + String(httpResponseCode));
-    }
-
-    http.end();  // HTTP холболтыг хаах
-  } else {
-    Serial.println("WiFi not connected.");
-  }
-}
-
-// Картын мэдээлэл авах
-void getCardInfo(String uid) {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin((String)API_SERVER + "/cards/" + uid);
-
-    int httpResponseCode = http.GET();
-
-    if (httpResponseCode == 200) {
-      String payload = http.getString();
-
-      // JSON объектоо боловсруулахын тулд буфер үүсгэнэ
-      const size_t capacity = 4096;
-      DynamicJsonDocument doc(capacity);
-
-      // payload-г JSON болгон parse хийх
-      DeserializationError error = deserializeJson(doc, payload);
-      Serial.println("Received payload:");
-      Serial.println(payload);
-
-      if (error) {
-        Serial.print("JSON parse error: ");
-        Serial.println(error.c_str());
-      } else {
-        // JSON дотроос хувьсагчуудад өгөгдөл оноох
-        String cardUid = doc["cardUid"];
-        String cardNumber = doc["cardNumber"];
-        int balance = doc["balance"];
-        String timeFormatted = doc["timeFormatted"];
-        String epassType = doc["configEPASS"]["type"];
-        String aquaType = doc["configAQUA"]["type"];
-        String evmType = doc["configEVM"]["type"];
-
-        // Serial дээр хэвлэх
-        Serial.println("Card UID: " + cardUid);
-        Serial.println("Card Number: " + cardNumber);
-        Serial.println("Balance: " + String(balance));
-        Serial.println("Time: " + timeFormatted);
-        Serial.println("EPASS Type: " + epassType);
-        Serial.println("AQUA Type: " + aquaType);
-        Serial.println("EVM Type: " + evmType);
-      }
-    } else {
-      Serial.println("HTTP request failed. Code: " + String(httpResponseCode));
-    }
-
-    http.end();  // HTTP холболтыг хаах
-  }
-}
-
-// Нэгж үнийг авах
-void getUnitPrice() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin((String)API_SERVER + "/wells/unit-prices?wellCode=" + (String)WELL_CODE);
-
-    int httpResponseCode = http.GET();
-
-    if (httpResponseCode == 200) {
-      String payload = http.getString();
-
-      // JSON объектоо боловсруулахын тулд буфер үүсгэнэ
-      const size_t capacity = 1024;
-      DynamicJsonDocument doc(capacity);
-
-      // payload-г JSON болгон parse хийх
-      DeserializationError error = deserializeJson(doc, payload);
-      Serial.println("Received payload:");
-      Serial.println(payload);
-
-      if (error) {
-        Serial.print("JSON parse error: ");
-        Serial.println(error.c_str());
-      } else {
-        // Нэгж үнийн мэдээлэл
-        Serial.println("Hot price: " + String(doc["hot"].as<int>()));
-        Serial.println("Cold price: " + String(doc["cold"].as<int>()));
-      }
-    } else {
-      Serial.println("HTTP request failed. Code: " + String(httpResponseCode));
-    }
-
-    http.end();  // HTTP холболтыг хаах
-  }
-}
-void api_send_purchase() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    
-    // API сервер рүү POST хүсэлт явуулах
-    http.begin(API_SERVER + String("/purchases"));
-    http.addHeader("Content-Type", "application/json");
-
-    // JSON өгөгдлийг үүсгэж, 0 утгуудыг тохируулж байна
-    StaticJsonDocument<1024> data;
-    data["cardUid"] = 0xAECA570D;
-    data["waterType"] = 0;
-    data["liter"] = 0;
-    data["amount"] = 0;
-    data["accumulatedLiter"] = 0;
-    data["unitPriceCold"] = 0;
-    data["unitPriceHot"] = 0;
-    data["wellCode"] = WELL_CODE;
-
-    String requestBody;
-    serializeJson(data, requestBody);
-
-    // POST хүсэлт илгээх
-    int httpResponseCode = http.POST(requestBody);
-
-    // Хариу шалгах
-    if (httpResponseCode == 200) {
-      String response = http.getString();
-      Serial.println("Success:");
-      Serial.println(response);
-    } else {
-      Serial.printf("Failed: %d, %s\n", httpResponseCode, http.errorToString(httpResponseCode).c_str());
-    }
-
-    http.end();
-  }
-}
+//   return doc["balance"];
+// }
 
 void setup() {
-  Serial.begin(9600);
-  WiFi.begin(ssid, password);
+  Serial.begin(115200);
+  Serial2.begin(19200, SERIAL_8N1, 19, 18);
+
+  // modem
+  SerialAT.begin(MODEM_BAUDRATE, MODEM_SER_CONFIG, MODEM_RX, MODEM_TX); _YIELD();
+  SerialAT.begin(MODEM_BAUDRATE, MODEM_SER_CONFIG, MODEM_RX, MODEM_TX); _YIELD();
+  modem_lte.begin();
+  modem_lte.turnOn();
   
-  // WiFi холболт шалгах
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nWiFi connected.");
+  // client.connect()
 
-  // MAC хаяг хэвлэх
-  Serial.println("MAC Address: " + WiFi.macAddress());
+  device.loop();
 
-  // POST хүсэлт илгээх
-  apiSendSensorData();
-  // // GET хүсэлт илгээх
-  // getCardInfo("AECA570D");
-  // getUnitPrice();
-  api_send_purchase();
 }
 
 void loop() {
-  // Туршилтын зорилгоор хүсэлт нэг удаа илгээсэн
+  // if (SerialAT.available()) {
+  //   Serial.write(SerialAT.read());
+  // }
+  // if (Serial.available()) {
+  //   SerialAT.write(Serial.read());
+  // }
+  delay(1);
 }
