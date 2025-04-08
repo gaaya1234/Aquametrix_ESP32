@@ -6,13 +6,11 @@
 #include <ArduinoJson.h>
 #include "sim7600g.h"
 #include "config.h"
-#include <FastCRC.h>
 #include "init.h"
 
 extern SIM7600G modem_lte;
 class Device {
 public:
-  FastCRC16 CRC16;
   WiFiClient client;
   HTTPClient http;
   String topic;

@@ -63,49 +63,6 @@ void Device::handle_card_request()
   cold = doc["cold"];
   hot = doc["hot"];
 
-  packet[0] = 0xAB;
-  packet[1] = 0xCD;
-  packet[2] = OUT_START_TRANSACTION;
-  packet[3] = OUT_START_TRANSACTION_LENGTH;
-
-  packet[4] = card_uid[0];
-  packet[5] = card_uid[1];
-  packet[6] = card_uid[2];
-  packet[7] = card_uid[3];
-
-  packet[8] = (uint8_t) (balance >> 24);
-  packet[9] = (uint8_t) (balance >> 16);
-  packet[10] = (uint8_t) (balance >> 8);
-  packet[11] = (uint8_t) balance;
-
-  packet[12] = (uint8_t) (hot >> 8);
-  packet[13] = (uint8_t) hot;
-
-  packet[14] = (uint8_t) (cold >> 8);
-  packet[15] = (uint8_t) cold;
-  
-  uint8_t temp[14];
-  for(int i = 0; i < 14; i++){
-    temp[i] = packet[i+2];
-  }
-  uint16_t crc = CRC16.kermit(temp, 14);
-
-  Serial.println("CRC\n\n");
-  Serial.println(crc, HEX);
-
-  packet[16] = (uint8_t) crc;
-  packet[17] = (uint8_t) ((crc&0xFF00) >> 8);
-  
-  packet[18] = 0xDC;
-  packet[19] = 0xBA;
-
-  Serial.println("WRITING TO MEGA!");
-  for(int i = 0; i < 20; i++)
-  {
-    Serial.print(packet[i], HEX);
-    Serial.print(" ");
-    Serial2.write(packet[i]);
-  }
 }
 
 void Device::handle_transaction_info()
