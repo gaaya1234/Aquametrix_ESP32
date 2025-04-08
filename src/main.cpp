@@ -134,6 +134,43 @@ void getUnitPrice() {
     http.end();  // HTTP холболтыг хаах
   }
 }
+void api_send_purchase() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    
+    // API сервер рүү POST хүсэлт явуулах
+    http.begin(API_SERVER + String("/purchases"));
+    http.addHeader("Content-Type", "application/json");
+
+    // JSON өгөгдлийг үүсгэж, 0 утгуудыг тохируулж байна
+    StaticJsonDocument<1024> data;
+    data["cardUid"] = 0xAECA570D;
+    data["waterType"] = 0;
+    data["liter"] = 0;
+    data["amount"] = 0;
+    data["accumulatedLiter"] = 0;
+    data["unitPriceCold"] = 0;
+    data["unitPriceHot"] = 0;
+    data["wellCode"] = WELL_CODE;
+
+    String requestBody;
+    serializeJson(data, requestBody);
+
+    // POST хүсэлт илгээх
+    int httpResponseCode = http.POST(requestBody);
+
+    // Хариу шалгах
+    if (httpResponseCode == 200) {
+      String response = http.getString();
+      Serial.println("Success:");
+      Serial.println(response);
+    } else {
+      Serial.printf("Failed: %d, %s\n", httpResponseCode, http.errorToString(httpResponseCode).c_str());
+    }
+
+    http.end();
+  }
+}
 
 void setup() {
   Serial.begin(9600);
@@ -151,9 +188,10 @@ void setup() {
 
   // POST хүсэлт илгээх
   apiSendSensorData();
-  // GET хүсэлт илгээх
-  getCardInfo("AECA570D");
-  getUnitPrice();
+  // // GET хүсэлт илгээх
+  // getCardInfo("AECA570D");
+  // getUnitPrice();
+  api_send_purchase();
 }
 
 void loop() {
